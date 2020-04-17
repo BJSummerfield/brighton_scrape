@@ -13,7 +13,7 @@ def runner
   password = PASSWORD 
   login(user_name, company_id, password)
   data_capture_test(information_to_write)
-  write_file(information_to_write, './brighton_test.csv')
+  write_file(information_to_write, '../csv/brighton_test.csv')
 end
 
 #**********
@@ -30,26 +30,26 @@ end
 
 def go_to_new_quote_page
   click_element(@driver, :id, 'btnNew')
-  sleep(6)
-  wait_element(@driver, :id, 'txtText1', "Quotation Spec")
+  # sleep(6)
+  wait_element(@driver, :class, 'dynatree-has-children')
 end
 
 def go_to_quotation_spec_page
   click_element(@driver, :id, 'QOspec')
-  sleep(6)
-  wait_element(@driver, :id, 'txtText1', "Quotation Spec")
+  # sleep(6)
+  wait_element(@driver, :class, 'dynatree-has-children')
 end
 
 def go_to_quotation_matched_page
   click_element(@driver, :id, 'QOmatched')
-  sleep(6)
-  wait_element(@driver, :id, 'txtText1', "Quotation Matched")
+  # sleep(6)
+  wait_element(@driver, :css, '[aria-describedby="grid_item"]')
 end
 
 def go_to_shopping_cart_page
   click_element(@driver, :id, 'QOcart')
-  sleep(6)
-  wait_element(@driver, :id, 'txtText1', "Shopping Cart")
+  # sleep(6)
+  wait_element(@driver, :id, '1_sec')
 end
 
 #************
@@ -81,13 +81,13 @@ def data_capture_test(information_to_write)
   item_list_hash.each do |i, iv|
     if i == '3'
       click_top_list(i.to_i)
-      sleep(0.25)
+      # sleep(0.25)
       iv.each do |j, jv|
         if j == "2"
           click_child_list(i.to_i, j.to_i)
-          sleep(0.25)
+          # sleep(0.25)
           jv.each do |k|
-            if k == "0" || k == "3"
+            if k == "0" || k == "1"
               click_checkbox(i.to_i, j.to_i, k.to_i)
               item_scrape_runner(information_to_write)
               click_checkbox(i.to_i, j.to_i, k.to_i)
@@ -123,7 +123,7 @@ def item_scrape_runner(information_to_write)
   go_to_quotation_matched_page
   quotation_matched_loop(information_to_write)
   go_to_quotation_spec_page
-  sleep(2) 
+  # sleep(2) 
   return information_to_write
 end
 
@@ -146,18 +146,18 @@ end
 def quotation_matched_loop(information_to_write)
   last_page_number = get_element(@driver, :id, 'sp_1_pager').text.to_i
   last_page_number.times do |i|
-    p i
     if i != 0
       go_to_quotation_matched_page
-      sleep(2)
+      # sleep(2)
       page_number_input = get_element(@driver, :class, "ui-pg-input")
       increase_quotation_matched_page_number(page_number_input, (i-1))
-      sleep(2)
+      # sleep(2)
       strike_out_quoted
       increase_quotation_matched_page_number(page_number_input, i)
-      sleep(2)
+      # sleep(2)
     end
-    increase_order_pkg
+    increase_order_pkg_test
+    # increase_order_pkg
     go_to_shopping_cart_page
     scrape_table(information_to_write)
     go_to_quotation_spec_page
@@ -170,33 +170,31 @@ def quotation_matched_loop(information_to_write)
 end
 
 def strike_out_quoted
-  sleep(2)
+  # sleep(2)
   checkboxes = get_elements(@driver, :css, '[type="checkbox"]')
   rows = get_elements(@driver, :class, 'ui-row-ltr')
-  (checkboxes.length).times do |i|
+  # (checkboxes.length).times do |i|
+  #   checkboxes[i].click
+  #   wait_strikethrough(rows, i)
+  (checkboxes.length / 10).times do |i|
     checkboxes[i].click
     wait_strikethrough(rows, i)
-  # ((checkboxes.length / 5).round).times do |i|
-  #   checkboxes[i].click
-  #   wait_strikethrough(element1, element2, i)
   end
-  sleep(3)
+  # sleep(3)
 end 
 
-# def increase_order_pkg_test
-#   hash = Hash.new
-#   hash["bulk"] = reduce_inputs('[aria-describedby="grid_order_bulk"]')
-#   hash["package"] = reduce_inputs('[aria-describedby="grid_order_package"]')
-#   hash.each do |key, value|
-#     ((value.length / 5).round).times do |i|
-#       if value[i]
-#         add_input(value[i], :class, 'mEdit', '1')
-#         add_input(value[i], :class, 'mEdit', "\n")
-#         wait_for_load(@driver, :id, 'Waiting_Dlg')
-#       end
-#     end
-#   end
-# end
+def increase_order_pkg_test
+  hash = Hash.new
+  hash["bulk"] = reduce_inputs('[aria-describedby="grid_order_bulk"]')
+  hash["package"] = reduce_inputs('[aria-describedby="grid_order_package"]')
+  hash.each do |key, value|
+    (value.length / 10).times do |i|
+      add_input(value[i], :class, 'mEdit', '1')
+      add_input(value[i], :class, 'mEdit', "\n")
+      wait_for_load(@driver, :id, 'Waiting_Dlg')
+    end
+  end
+end
 
 def increase_order_pkg
   hash = Hash.new
@@ -242,11 +240,17 @@ def scrape_row(first_row, second_row)
   hash = Hash.new
   hash['Part Number'] = get_element(second_row, :css, 'span').text
   hash['Description'] = get_element(first_row, :class, 'divitmdesc').text
+  hash['Type'] = check_type(first_row)
   hash['Pack-Size'] = get_element(first_row, :class, 'ordqty').attribute('value')
   hash['Weight'] = get_element(first_row, :class, 'spantxtWeight').text
   hash['Cost'] = get_element(first_row, :class, 'spantxtAmount').text
   hash['Stock'] = check_stock(second_row)
   return hash
+end
+
+def check_type(first_row)
+  columns = get_elements(first_row, :css, 'td')
+  return columns[3].text
 end
 
 def check_stock(second_row)
@@ -372,18 +376,17 @@ def wait_for_load(instance, selector, selector_name)
   }
 end
 
-def wait_element(instance, selector, selector_name, matched_text)
+def wait_element(instance, selector, selector_name)
     element = @wait.until {
     element = instance.find_element(selector, selector_name)
-    element if element.displayed? && element.text == matched_text
+    return if element != nil
   }
-  return 
 end
 
 def wait_strikethrough(rows, i)
   @wait.until {
     element = get_element(rows[i], :css, '[disabled="disabled"]')
-    return if element != nilKB  
+    return if element != nil
   } 
 end  
 runner
